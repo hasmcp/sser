@@ -1,0 +1,217 @@
+openapi: 3.1.0
+info:
+  title: PubSub API
+  version: "1.0"
+  description: API endpoints for managing PubSub topics and streaming events using Server-Sent Events (SSE).
+servers:
+  - url: "{baseURL}/api/v1"
+    variables:
+      baseURL:
+        default: http://localhost:8889
+        description: The base URL for the API server.
+security:
+  - MainApiAuth: []
+  - TopicReadAuth: []
+paths:
+  /pubsubs:
+    post:
+      tags:
+        - Topics
+      summary: Create PubSub Topic
+      description: Creates a new PubSub topic.
+      security:
+        - MainApiAuth: []
+      requestBody:
+        description: Currently accepts an empty object for default topic creation.
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              maxProperties: 0
+            example: {}
+      responses:
+        "200":
+          description: Topic successfully created.
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Topic"
+              example:
+                id: 00Q72zvO87K
+                created_at: "2025-10-20T12:00:00Z"
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /pubsubs/{id}:
+    parameters:
+      - $ref: "#/components/parameters/TopicId"
+    delete:
+      tags:
+        - Topics
+      summary: Delete PubSub Topic
+      description: Deletes an existing PubSub topic by its unique ID.
+      security:
+        - MainApiAuth: []
+      responses:
+        "204":
+          description: Topic successfully deleted (No Content).
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: Topic ID not found.
+        "500":
+          $ref: "#/components/responses/ServerError"
+  /pubsubs/{id}/events:
+    parameters:
+      - $ref: "#/components/parameters/TopicId"
+    post:
+      tags:
+        - Events
+      summary: Publish Event to Topic
+      description: Publishes a message to the specified PubSub topic.
+      security:
+        - MainApiAuth: []
+      requestBody:
+        description: Payload containing the event message.
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublishRequest"
+            example:
+              event:
+                message: Hello World!
+      responses:
+        "202":
+          description: Event accepted for processing.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: accepted
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: Topic ID not found.
+        "500":
+          $ref: "#/components/responses/ServerError"
+    get:
+      tags:
+        - Events
+      summary: Subscribe to Topic Events (SSE)
+      description: Establishes a long-lived connection to stream events using Server-Sent Events (SSE).
+      security:
+        - TopicReadAuth: []
+      responses:
+        "200":
+          description: Successful connection, events will be streamed.
+          content:
+            text/event-stream:
+              schema:
+                type: string
+                description: A stream of Server-Sent Events (SSE) where each event contains message data.
+              example: |
+                event: message
+                data: {"id": "123", "content": "Welcome"}
+
+                event: message
+                data: {"id": "124", "content": "New update"}
+        "401":
+          $ref: "#/components/responses/UnauthorizedError"
+        "404":
+          description: Topic ID not found.
+        "500":
+          $ref: "#/components/responses/ServerError"
+components:
+  schemas:
+    Topic:
+      type: object
+      properties:
+        id:
+          type: string
+          description: The unique identifier for the PubSub topic.
+          example: 00Q72zvO87K
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp of when the topic was created.
+    PublishRequest:
+      type: object
+      required:
+        - event
+      properties:
+        event:
+          type: object
+          required:
+            - message
+          properties:
+            message:
+              type: object
+              description: The actual message content. Can be any JSON-serializable type.
+              example:
+                text: This is a JSON message
+    Error:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: object
+          required:
+            - code
+            - message
+          properties:
+            code:
+              type: integer
+              description: The numerical error code, typically mirroring the HTTP status code (e.g., 401, 500).
+              example: 401
+            message:
+              type: string
+              description: A human-readable description of the error.
+              example: Authentication token is missing or invalid.
+            details:
+              type: object
+              description: Optional object containing additional specific error details (e.g., validation errors).
+  parameters:
+    TopicId:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+        description: The unique ID of the PubSub topic.
+  securitySchemes:
+    MainApiAuth:
+      type: http
+      scheme: bearer
+      description: Bearer token (SSER_API_ACCESS_TOKEN) for administrative actions (create, delete, publish).
+    TopicReadAuth:
+      type: http
+      scheme: bearer
+      description: Bearer token (SSER_TOPIC_ACCESS_TOKEN) specifically for streaming/subscribing to events.
+  responses:
+    UnauthorizedError:
+      description: Authentication failed (Invalid or missing token).
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: 401
+              message: Bearer token is missing or invalid.
+    ServerError:
+      description: Internal Server Error.
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error:
+              code: 500
+              message: An unexpected error occurred on the server.

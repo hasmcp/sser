@@ -1,0 +1,34 @@
+app:
+  name: "sser"
+  version: "0.1.0"
+  waitTimeOnShutdownInSeconds: 5
+
+server:
+  name: "sser"
+  addr: ${PORT:8889}
+  sslAddr: ${SSLPORT:8888}
+  idleTimeout: 1800s
+  readTimeout: 60s
+  writeTimeout: 3600s
+  maxRequestBodySize: 16000
+  tcpKeepalivePeriod: 1800s
+  tcpKeepalive: false
+  noDefaultDate: false
+  closeOnShutdown: false
+  disablePreParseMultipartForm: false
+  ssl:
+    enabled: false
+    domainName: "${SSER_DOMAIN_NAME:example.com}"
+    letsencryptEmail: "${SSER_LETSENCYRPT_EMAIL:example@example.com}"
+    cacheDir: ./_config/certs
+
+idgen:
+  epochTimeInSeconds: 1761023593
+  node: ${MONOFLAKE_NODE:0}
+  nodeBits: 8
+
+pubsub:
+  apiAccessToken: "${SSER_API_ACCESS_TOKEN:438nPNdcBCtop2MrkmRnJOpjREs5Fc2EiK8jTcmg7qQx4k7dQLQ0KNyB7czVCKiW}"
+  metricsAccessToken: "${SSER_METRICS_ACCESS_TOKEN:fzQm0hqz2y4hr75IzH5eurAag7JFt3vaMnw9C0QzGCS5tlictN4UyS9ysrxIpz}"
+  maxDurationForSubscriberToReceive: 3s
+  tickFrequency: 4s

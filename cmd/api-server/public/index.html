@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SSER &gt; Dashaboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap');
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: rgb(17 24 39);
+      color: rgb(243 244 246);
+    }
+
+    .metric-value {
+      transition: all 0.1s ease-out;
+      transform: scale(1);
+    }
+
+    .animate-pulse-update {
+      animation: pulse-update 0.2s ease-out;
+    }
+
+    @keyframes pulse-update {
+      0% {
+        transform: scale(1);
+        opacity: 1;
+      }
+
+      50% {
+        transform: scale(1.05);
+        opacity: 0.8;
+      }
+
+      100% {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    /* Style for the clickable summary card */
+    .summary-card {
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    /* Custom styles for dark theme form elements */
+    #auth-overlay input {
+      color: #fff;
+      background-color: rgb(55 65 81);
+      /* bg-gray-700 */
+      border-color: rgb(75 85 99);
+      /* border-gray-600 */
+    }
+  </style>
+</head>
+
+<body class="bg-gray-900 min-h-screen p-6">
+
+  <div id="auth-overlay" class="fixed inset-0 bg-gray-900 bg-opacity-90 z-50 flex items-center justify-center p-4">
+    <div class="bg-gray-800 p-8 rounded-xl shadow-2xl w-full max-w-md text-white">
+      <h2 class="text-2xl font-bold mb-4">SSER &gt; Dashboard</h2>
+      <p class="text-sm text-gray-400 mb-6">Enter your metric access token to view realtime event dashboard.</p>
+      <form id="auth-form">
+        <div class="mb-6">
+          <label for="access-token" class="block text-sm font-medium text-gray-300 mb-1">Access Token</label>
+          <input type="password" id="access-token" required placeholder="Enter token here..."
+            class="w-full px-3 py-2 border border-gray-600 rounded-lg focus:ring-blue-500 focus:border-blue-500 bg-gray-700 text-white">
+        </div>
+        <button type="submit"
+          class="w-full bg-gray-700 text-white font-semibold py-2 rounded-lg hover:bg-gray-600 transition duration-150 mb-6">
+          Connect
+        </button>
+      </form>
+
+      <div class="flex justify-center border-t border-gray-700 pt-6">
+        <a href="https://github.com/mustafaturan/sser" target="_blank" class="inline-flex items-center text-sm font-medium rounded-md cursor-pointer transition-all duration-150
+        bg-gray-50 text-gray-800 border border-gray-300 px-3 py-1.5
+        hover:bg-gray-100 hover:border-gray-400 active:bg-gray-200
+        dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700
+        dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:active:bg-gray-600">
+          <svg class="h-4 w-4 mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" fill="currentColor">
+            <path
+              d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.217.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.792L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.792l.72-4.194L.818 6.315a.75.75 0 0 1 .416-1.281l4.217-.612L7.327.668A.75.75 0 0 1 8 .25Z">
+            </path>
+          </svg>
+          <span>Star on GitHub</span>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div id="dashboard-content" class="max-w-4xl mx-auto hidden">
+    <header class="pb-6 border-b border-gray-700 mb-6 flex justify-between items-center">
+      <h1 class="text-4xl font-extrabold text-gray-100">SSER &gt; Dashboard</h1>
+      <div class="flex items-center space-x-4">
+        <a href="https://github.com/mustafaturan/sser" target="_blank" class="inline-flex items-center text-sm font-medium rounded-md cursor-pointer transition-all duration-150
+        bg-gray-50 text-gray-800 border border-gray-300 px-3 py-1.5
+        hover:bg-gray-100 hover:border-gray-400 active:bg-gray-200
+        dark:bg-gray-800 dark:text-gray-100 dark:border-gray-700
+        dark:hover:bg-gray-700 dark:hover:border-gray-600 dark:active:bg-gray-600">
+          <svg class="h-4 w-4 mr-2" viewBox="0 0 16 16" version="1.1" width="16" height="16" fill="currentColor">
+            <path
+              d="M8 .25a.75.75 0 0 1 .673.418l1.882 3.815 4.217.612a.75.75 0 0 1 .416 1.279l-3.046 2.97.719 4.192a.75.75 0 0 1-1.088.792L8 12.347l-3.766 1.98a.75.75 0 0 1-1.088-.792l.72-4.194L.818 6.315a.75.75 0 0 1 .416-1.281l4.217-.612L7.327.668A.75.75 0 0 1 8 .25Z">
+            </path>
+          </svg>
+          <span>Star on GitHub</span>
+        </a>
+        <a href="#" id="logout-link"
+          class="text-sm text-gray-400 hover:text-red-500 transition duration-150 p-2 border border-gray-700 rounded-lg">
+          Logout
+        </a>
+      </div>
+    </header>
+
+    <section id="all-metrics-summary" class="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-7 gap-3 mb-8">
+      <div data-metric-key="topics" data-group-color="blue"
+        class="summary-card p-2 rounded-lg flex flex-col items-center hover:shadow-lg border-t-4 border-b-4 shadow-xl bg-gray-700 border-blue-500 selected">
+        <p class="text-xs font-semibold text-gray-400 uppercase truncate w-full text-center">Total PubSubs</p>
+        <p id="topics-summary" class="metric-value text-xl font-extrabold text-blue-400">0</p>
+      </div>
+      <div data-metric-key="active_topics" data-group-color="blue"
+        class="summary-card bg-gray-800 p-2 rounded-lg shadow border-b-2 border-blue-500 flex flex-col items-center hover:shadow-lg">
+        <p class="text-xs font-semibold text-gray-400 uppercase truncate w-full text-center">Active PubSubs</p>
+        <p id="active_topics-summary" class="metric-value text-xl font-extrabold text-blue-400">0</p>
+      </div>
+      <div data-metric-key="static_topics" data-group-color="blue"
+        class="summary-card bg-gray-800 p-2 rounded-lg shadow border-b-2 border-blue-500 flex flex-col items-center hover:shadow-lg">
+        <p class="text-xs font-semibold text-gray-400 uppercase truncate w-full text-center">Static PubSubs</p>
+        <p id="static_topics-summary" class="metric-value text-xl font-extrabold text-blue-400">0</p>
+      </div>
+
+      <div data-metric-key="subscribers" data-group-color="green"
+        class="summary-card bg-gray-800 p-2 rounded-lg shadow border-b-2 border-green-500 flex flex-col items-center hover:shadow-lg">
+        <p class="text-xs font-semibold text-gray-400 uppercase truncate w-full text-center">Total Subs</p>
+        <p id="subscribers-summary" class="metric-value text-xl font-extrabold text-green-400">0</p>
+      </div>
+      <div data-metric-key="active_subscribers" data-group-color="green"
+        class="summary-card bg-gray-800 p-2 rounded-lg shadow border-b-2 border-green-500 flex flex-col items-center hover:shadow-lg">
+        <p class="text-xs font-semibold text-gray-400 uppercase truncate w-full text-center">Active Subs</p>
+        <p id="active_subscribers-summary" class="metric-value text-xl font-extrabold text-green-400">0</p>
+      </div>
+
+      <div data-metric-key="message_received" data-group-color="purple"
+        class="summary-card bg-gray-800 p-2 rounded-lg shadow border-b-2 border-purple-500 flex flex-col items-center hover:shadow-lg">
+        <p class="text-xs font-semibold text-gray-400 uppercase truncate w-full text-center">Msg Received</p>
+        <p id="message_received-summary" class="metric-value text-xl font-extrabold text-purple-400">0</p>
+      </div>
+      <div data-metric-key="message_sent" data-group-color="purple"
+        class="summary-card bg-gray-800 p-2 rounded-lg shadow border-b-2 border-purple-500 flex flex-col items-center hover:shadow-lg">
+        <p class="text-xs font-semibold text-gray-400 uppercase truncate w-full text-center">Msg Sent</p>
+        <p id="message_sent-summary" class="metric-value text-xl font-extrabold text-purple-400">0</p>
+      </div>
+    </section>
+
+    <section id="main-display-section" class="bg-gray-800 p-8 rounded-2xl shadow-2xl border-t-8 border-blue-500">
+
+      <p class="text-xl font-semibold text-gray-400 mb-2" id="live-metric-title">
+        Current Value: <span class="text-blue-400" id="selected-metric-name">Total PubSubs</span>
+      </p>
+
+      <div class="p-4 bg-gray-700 rounded-xl mb-6">
+        <span id="live-count-display" class="metric-value text-8xl font-extrabold text-blue-400">0</span>
+      </div>
+
+      <h2 class="text-2xl font-bold text-gray-300 border-b border-gray-700 pb-2 mb-4">
+        Activity Rate (Max Increments/Minute)
+      </h2>
+      <div class="h-48 mb-4">
+        <canvas id="rate-sparkline-chart"></canvas>
+      </div>
+      <p id="current-max-rate" class="text-lg text-gray-400 text-center">
+        Peak rate this minute: <span class="font-extrabold text-red-400">0 increments/s</span>
+      </p>
+
+    </section>
+
+    <footer class="text-center text-xs text-gray-600 pt-4 border-t border-gray-700 mt-8">
+      Data stream: Real-time updates via Fetch API streaming.
+    </footer>
+  </div>
+
+  <script type="module">
+
+    // --- COLOR MAPPING ---
+    const COLOR_MAP = {
+      'blue': { // PubSubs (Cyan Accent)
+        primary: 'rgb(255, 255, 255)',       // White chart line for monochrome look
+        text: 'rgb(96, 165, 250)',          // blue-400 for large number accent
+        borderTailwind: 'border-blue-500',   // Keeps original border accent
+      },
+      'green': { // Subscriptions (Green Accent)
+        primary: 'rgb(255, 255, 255)',
+        text: 'rgb(74, 222, 128)',           // green-400 for large number accent
+        borderTailwind: 'border-green-500',
+      },
+      'purple': { // Messaging (Purple Accent)
+        primary: 'rgb(255, 255, 255)',
+        text: 'rgb(192, 132, 252)',          // purple-400 for large number accent
+        borderTailwind: 'border-purple-500',
+      }
+    };
+
+    // --- METRIC DEFINITIONS & MAPPING ---
+    const LOCAL_STORAGE_KEY = 'metricAccessToken';
+    const METRIC_KEYS = [
+      'topics', 'active_topics', 'static_topics',
+      'subscribers', 'active_subscribers',
+      'message_received', 'message_sent'
+    ];
+
+    // Maps API keys returned in the initial GET and SSE stream to dashboard keys
+    const API_TO_DASHBOARD_MAP = {
+      "topics": "topics",
+      "active_topics": "active_topics",
+      "static_topics": "static_topics",
+      "subscribers": "subscribers",
+      "active_subscribers": "active_subscribers",
+      "message_received": "message_received",
+      "message_sent": "message_sent",
+    };
+
+
+    // --- 1. Metrics Monitor Class (State Management) ---
+
+    class MetricsMonitor {
+      static EVENT_NAME = 'metricUpdate';
+
+      /** @private {Object<string, {value: number, rateCounter: number, maxRateThisMinute: number, minuteHistory: number[]}>} */
+      #metrics = {};
+
+      #lastMinute = new Date().getMinutes();
+      #eventTarget = new EventTarget();
+      #minuteIntervalId = null;
+      #sseReader = null; // To hold the reader for manual stream closing
+
+      constructor() {
+        // Initialize all metrics with their history tracking data
+        METRIC_KEYS.forEach(key => {
+          this.#metrics[key] = {
+            value: 0,
+            rateCounter: 0,
+            maxRateThisMinute: 0,
+            minuteHistory: new Array(15).fill(0), // 15 minutes history
+          };
+        });
+      }
+
+      initializeValues(metricsApiData) {
+        metricsApiData.forEach(item => {
+          const dashboardName = API_TO_DASHBOARD_MAP[item.name];
+          if (dashboardName && this.#metrics[dashboardName]) {
+            this.#metrics[dashboardName].value = item.value || 0;
+          }
+        });
+
+        // Trigger an initial update to display correct values immediately
+        METRIC_KEYS.forEach(metricName => {
+          this.#eventTarget.dispatchEvent(new CustomEvent(MetricsMonitor.EVENT_NAME, {
+            detail: {
+              metric: metricName,
+              value: this.#metrics[metricName].value,
+              timestamp: Date.now()
+            }
+          }));
+        });
+      }
+
+      handleMetricUpdate(metricName, value) {
+        const metric = this.#metrics[metricName];
+        if (metric) {
+          metric.value += value;
+
+          metric.rateCounter += value;
+
+          this.#eventTarget.dispatchEvent(new CustomEvent(MetricsMonitor.EVENT_NAME, {
+            detail: {
+              metric: metricName,
+              value: metric.value,
+              timestamp: Date.now()
+            }
+          }));
+        }
+      }
+
+      startHistoryTracker() {
+        if (this.#minuteIntervalId) return;
+
+        this.#minuteIntervalId = setInterval(() => {
+          const now = new Date();
+          const currentMinute = now.getMinutes();
+          const isMinuteRollover = currentMinute !== this.#lastMinute;
+
+          METRIC_KEYS.forEach(metricName => {
+            const metric = this.#metrics[metricName];
+
+            if (metric.rateCounter > metric.maxRateThisMinute) {
+              metric.maxRateThisMinute = metric.rateCounter;
+            }
+
+            if (isMinuteRollover) {
+              metric.minuteHistory.shift();
+              metric.minuteHistory.push(metric.maxRateThisMinute);
+              metric.maxRateThisMinute = 0;
+            }
+
+            metric.rateCounter = 0;
+          });
+
+          if (isMinuteRollover) {
+            this.#lastMinute = currentMinute;
+          }
+
+          this.#eventTarget.dispatchEvent(new CustomEvent(MetricsMonitor.EVENT_NAME, {
+            detail: {
+              metric: 'history-update',
+              data: this.#metrics,
+              timestamp: Date.now()
+            }
+          }));
+        }, 1000);
+      }
+
+      stopHistoryTracker() {
+        if (this.#minuteIntervalId) {
+          clearInterval(this.#minuteIntervalId);
+          this.#minuteIntervalId = null;
+        }
+      }
+
+      setSseReader(reader) {
+        this.#sseReader = reader;
+      }
+
+      stopSseConnection() {
+        if (this.#sseReader) {
+          // Canceling the reader should stop the fetch stream
+          this.#sseReader.cancel('Logout initiated');
+          this.#sseReader = null;
+        }
+      }
+
+      getMetricData(metricName) {
+        return this.#metrics[metricName] || null;
+      }
+
+      subscribe(listener) {
+        this.#eventTarget.addEventListener(MetricsMonitor.EVENT_NAME, listener);
+      }
+    }
+
+    // --- 2. Data Stream (Fetch Streaming Connection) ---
+
+    /**
+     * Establishes a real Server-Sent Events (SSE) connection using Fetch.
+     */
+    function startSseConnection(monitor, accessToken) {
+      const sseUrl = '/api/v1/pubsubs/0/events';
+
+      fetch(sseUrl, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${accessToken}`,
+          'Content-Type': 'text/event-stream'
+        }
+      })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('SSE Connection Failed');
+          }
+
+          const reader = response.body.getReader();
+          monitor.setSseReader(reader); // Store reader to allow stopping
+          const decoder = new TextDecoder();
+          let buffer = '';
+
+          console.log(`SSE connection initiated to ${sseUrl} with Authorization header.`);
+
+          function processStream({ done, value }) {
+            if (done) {
+              console.log('SSE stream closed.');
+              return;
+            }
+
+            buffer += decoder.decode(value, { stream: true });
+
+            const events = buffer.split('\n\n');
+            buffer = events.pop();
+
+            events.forEach(eventStr => {
+              if (eventStr.startsWith('data:')) {
+                try {
+                  const dataLine = eventStr.substring(eventStr.indexOf('data:') + 5).trim();
+                  const data = JSON.parse(dataLine);
+
+                  const dashboardKey = API_TO_DASHBOARD_MAP[data.metric] || data.metric;
+
+                  if (monitor.getMetricData(dashboardKey)) {
+                    monitor.handleMetricUpdate(dashboardKey, data.val);
+                  } else {
+                    console.warn('Received unmapped or unknown metric from SSE:', data.metric);
+                  }
+                } catch (e) {
+                  console.error("Error parsing SSE data:", e, eventStr);
+                }
+              }
+            });
+
+            // Continue reading the stream
+            reader.read().then(processStream).catch(err => {
+              console.error('Error reading SSE stream:', err);
+            });
+          }
+
+          reader.read().then(processStream).catch(err => {
+            console.error('Error initiating SSE stream read:', err);
+          });
+
+        })
+        .catch(error => {
+          console.error('Failed to establish SSE connection via Fetch:', error);
+          alert('Failed to connect to real-time stream. Please refresh or check connection.');
+        });
+    }
+
+    // --- 3. UI Initialization and Event Listening ---
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const monitor = new MetricsMonitor();
+
+      let selectedMetric = METRIC_KEYS[0];
+      const displayElement = document.getElementById('live-count-display');
+      const rateElement = document.getElementById('current-max-rate');
+      const titleElement = document.getElementById('selected-metric-name');
+      const chartCanvas = document.getElementById('rate-sparkline-chart');
+      const summarySection = document.getElementById('all-metrics-summary');
+      const mainDisplaySection = document.getElementById('main-display-section');
+
+      // Auth elements
+      const authOverlay = document.getElementById('auth-overlay');
+      const dashboardContent = document.getElementById('dashboard-content');
+      const authForm = document.getElementById('auth-form');
+      const logoutLink = document.getElementById('logout-link');
+
+      // --- Class Utilities for Toggling Selection State ---
+      const ALL_BORDER_COLOR_CLASSES = ['border-blue-500', 'border-green-500', 'border-purple-500'];
+
+      const SELECT_UTILITY_CLASSES = ['border-t-4', 'border-b-4', 'shadow-xl', 'bg-gray-700'];
+      const UNSELECT_UTILITY_CLASSES = ['border-b-2', 'shadow', 'bg-gray-800', 'border-t-0'];
+
+      // --- Chart Initialization (Uses default blue colors) ---
+      const defaultColor = COLOR_MAP['blue'].primary;
+      const chart = new Chart(chartCanvas, {
+        type: 'line',
+        data: {
+          labels: new Array(15).fill(''),
+          datasets: [{
+            label: 'Peak Increments/Second',
+            data: new Array(15).fill(0),
+            borderColor: defaultColor,
+            backgroundColor: `${defaultColor.replace('rgb', 'rgba').replace(')', ', 0.1)')}`,
+            tension: 0.4,
+            pointRadius: 3,
+            pointBackgroundColor: defaultColor,
+            borderWidth: 2,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                title: () => `Previous Minute`,
+                label: (tooltipItem) => `Max Rate: ${tooltipItem.raw}/s`
+              }
+            }
+          },
+          scales: {
+            x: { display: false },
+            y: {
+              display: true,
+              beginAtZero: true,
+              grid: { color: 'rgba(255, 255, 255, 0.2)' },
+              ticks: { color: 'rgba(255, 255, 255, 0.8)' }
+            }
+          }
+        }
+      });
+
+      // --- Core Helper Functions ---
+
+      function getMetricGroup(metricKey) {
+        // Updated logic to ensure correct mapping based on the metric key's content
+        if (metricKey.includes('topics')) return 'blue';
+        if (metricKey.includes('subscribers')) return 'green';
+        if (metricKey.includes('message')) return 'purple';
+        return 'blue'; // Default to blue
+      }
+
+
+      function updateUI(metricData) {
+        if (!metricData) return;
+
+        titleElement.textContent = selectedMetric.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+        displayElement.textContent = metricData.value;
+
+        rateElement.innerHTML = `Peak rate this minute: <span class="font-extrabold text-red-400">${metricData.maxRateThisMinute} increments/s</span>`;
+
+        chart.data.datasets[0].data = metricData.minuteHistory;
+        chart.update();
+      }
+
+      function handleMetricChange(newMetric) {
+        if (selectedMetric === newMetric) return;
+
+        const group = getMetricGroup(newMetric);
+        const colors = COLOR_MAP[group];
+
+        const cards = document.querySelectorAll('.summary-card');
+
+        cards.forEach(card => {
+          const cardKey = card.getAttribute('data-metric-key');
+          const cardGroup = card.getAttribute('data-group-color');
+          const staticBorderClass = COLOR_MAP[cardGroup].borderTailwind;
+
+          card.classList.remove('selected', ...SELECT_UTILITY_CLASSES, ...UNSELECT_UTILITY_CLASSES, ...ALL_BORDER_COLOR_CLASSES);
+
+          if (cardKey === newMetric) {
+            card.classList.add(...SELECT_UTILITY_CLASSES, colors.borderTailwind, 'selected');
+          } else {
+            card.classList.add(...UNSELECT_UTILITY_CLASSES, staticBorderClass);
+          }
+        });
+
+        selectedMetric = newMetric;
+
+        mainDisplaySection.classList.remove(...ALL_BORDER_COLOR_CLASSES);
+        mainDisplaySection.classList.add(colors.borderTailwind);
+
+        // Update main display color - note: Tailwind JIT/AOT sometimes requires explicit class usage,
+        // so generating classes dynamically like this can fail unless the exact strings
+        // like 'text-blue-400', 'text-green-400', 'text-purple-400' are used elsewhere.
+        // I will keep the existing dynamic class logic but be aware of the limitation.
+        const countClasses = displayElement.className.split(' ').filter(cls => !cls.startsWith('text-'));
+        // NOTE: Keeping the explicit color classes for safety, as dynamic string interpolation might break Tailwind JIT.
+        let countColorClass = `text-${group}-400`;
+        displayElement.className = [...countClasses, `text-8xl`, countColorClass].join(' ');
+
+
+        const titleClasses = titleElement.className.split(' ').filter(cls => !cls.startsWith('text-'));
+        let titleColorClass = `text-${group}-400`;
+        titleElement.className = [...titleClasses, titleColorClass].join(' ');
+
+
+        chart.data.datasets[0].borderColor = colors.primary;
+        chart.data.datasets[0].pointBackgroundColor = colors.primary;
+        chart.data.datasets[0].backgroundColor = `${colors.primary.replace('rgb', 'rgba').replace(')', ', 0.1)')}`;
+
+        const data = monitor.getMetricData(selectedMetric);
+        updateUI(data);
+      }
+
+      /**
+       * Core function to handle API connection, token saving, and UI switch.
+       * @param {string} accessToken
+       */
+      async function connectAndInitialize(accessToken) {
+        const GET_ENDPOINT = '/api/v1/metrics';
+
+        try {
+          // 1. Initial State Fetch (GET Request)
+          const response = await fetch(GET_ENDPOINT, {
+            method: 'GET',
+            headers: {
+              'Authorization': `Bearer ${accessToken}`,
+              'Content-Type': 'application/json'
+            }
+          });
+
+          if (response.status === 401) {
+            throw new Error('401 Unauthorized');
+          }
+
+          if (!response.ok) {
+            throw new Error(`API returned status ${response.status}`);
+          }
+
+          const initialData = await response.json();
+
+          // 2. Save token to localStorage ONLY if fetch succeeds
+          localStorage.setItem(LOCAL_STORAGE_KEY, accessToken);
+
+          // 3. Initialize Monitor State
+          monitor.initializeValues(initialData.metrics);
+
+          // 4. Hide the overlay and show the dashboard
+          authOverlay.classList.add('hidden');
+          dashboardContent.classList.remove('hidden');
+
+          // 5. Start the real-time SSE stream and history tracker
+          startSseConnection(monitor, accessToken);
+          monitor.startHistoryTracker();
+
+          // Set initial appearance correctly
+          handleMetricChange(selectedMetric);
+
+        } catch (error) {
+
+          const isUnauthorized = error.message.includes('401');
+          const userMessage = isUnauthorized
+            ? "Stored token is invalid (401 Unauthorized). Please enter a new token."
+            : `Connection Error: ${error.message || 'Could not connect to API.'}`;
+
+          console.error('Connection/Initialization Failed:', error);
+
+          // --- CRUCIAL: Remove bad token and show form ---
+          localStorage.removeItem(LOCAL_STORAGE_KEY);
+          document.getElementById('access-token').value = '';
+
+          alert(userMessage);
+          authOverlay.classList.remove('hidden');
+          dashboardContent.classList.add('hidden');
+        }
+      }
+
+      function handleLogout(e) {
+        e.preventDefault();
+
+        monitor.stopHistoryTracker();
+        monitor.stopSseConnection(); // Stop the active stream
+
+        localStorage.removeItem(LOCAL_STORAGE_KEY);
+
+        // Clear the token input field
+        document.getElementById('access-token').value = '';
+
+        // Hide dashboard and show login form
+        dashboardContent.classList.add('hidden');
+        authOverlay.classList.remove('hidden');
+      }
+
+      // --- Event Listeners Setup ---
+
+      // Add click listener to the summary section parent
+      summarySection.addEventListener('click', (e) => {
+        const card = e.target.closest('.summary-card');
+        if (card) {
+          const newMetric = card.getAttribute('data-metric-key');
+          if (newMetric) {
+            handleMetricChange(newMetric);
+          }
+        }
+      });
+
+      // Logout listener
+      logoutLink.addEventListener('click', handleLogout);
+
+      // Authentication Handler
+      authForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const accessToken = document.getElementById('access-token').value;
+        if (accessToken) {
+          connectAndInitialize(accessToken);
+        }
+      });
+
+      // Event Subscriber
+      monitor.subscribe((event) => {
+        const { metric, value, data } = event.detail;
+
+        // Case 1: Instantaneous value update (metric card needs pulse)
+        if (metric !== 'history-update') {
+          const summaryElement = document.getElementById(`${metric}-summary`);
+          if (summaryElement) {
+            summaryElement.textContent = value;
+            summaryElement.classList.remove('animate-pulse-update');
+            void summaryElement.offsetWidth;
+            summaryElement.classList.add('animate-pulse-update');
+          }
+
+          if (metric === selectedMetric) {
+            displayElement.textContent = value;
+            displayElement.classList.remove('animate-pulse-update');
+            void displayElement.offsetWidth;
+            displayElement.classList.add('animate-pulse-update');
+          }
+        }
+
+        // Case 2: History/Rate update (runs every second for all metrics)
+        if (metric === 'history-update') {
+          const currentData = data[selectedMetric];
+          if (currentData) {
+            updateUI(currentData);
+          }
+        }
+      });
+
+      // --- Initial Load Check ---
+      const storedToken = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (storedToken) {
+        // Attempt to connect with stored token. If it fails (e.g., 401),
+        // connectAndInitialize handles clearing the token and showing the form.
+        document.getElementById('access-token').value = storedToken;
+        connectAndInitialize(storedToken);
+      } else {
+        // Ensure auth overlay is visible if no token is stored
+        authOverlay.classList.remove('hidden');
+        dashboardContent.classList.add('hidden');
+      }
+
+      // Set the default selection for the summary cards on load
+      handleMetricChange(selectedMetric);
+    });
+  </script>
+</body>
+
+</html>

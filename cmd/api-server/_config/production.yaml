@@ -1,0 +1,17 @@
+server:
+  addr: ${PORT:80}
+  sslAddr: ${SSLPORT:443}
+  idleTimeout: 1800s
+  readTimeout: 60s
+  writeTimeout: 3600s
+  maxRequestBodySize: 16000
+  tcpKeepalivePeriod: 1800s
+  tcpKeepalive: false
+  noDefaultDate: false
+  closeOnShutdown: false
+  disablePreParseMultipartForm: false
+  ssl:
+    enabled: true
+    domainName: "${SSER_DOMAIN_NAME:example.com}"
+    letsencryptEmail: "${SSER_LETSENCYRPT_EMAIL:example@example.com}"
+    cacheDir: ./_config/certs
