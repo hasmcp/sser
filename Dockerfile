@@ -22,7 +22,6 @@ RUN echo "nobody:x:65534:65534:Nobody:/:" > /etc_passwd
 # No need extra files
 FROM scratch
 
-EXPOSE 80 443 8889
 COPY --from=build /etc/ssl/certs/ /etc/ssl/certs/
 COPY --from=build /app/sser /
 COPY --from=build /etc_passwd /etc/passwd
