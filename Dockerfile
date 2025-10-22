@@ -12,7 +12,13 @@ RUN GO111MODULE=on go mod download
 COPY internal internal
 COPY cmd cmd
 
-RUN CGO_ENABLED=0 go build -v -o sser cmd/api-server/main.go
+ARG TARGETOS
+ARG TARGETARCH
+ENV GOOS=${TARGETOS}
+ENV GOARCH=${TARGETARCH}
+ENV CGO_ENABLED=0
+
+RUN go build -v -o sser cmd/api-server/main.go
 
 # Create a "nobody" non-root user for the next image by crafting an /etc/passwd
 # file that the next image can copy in. This is necessary since the next image
