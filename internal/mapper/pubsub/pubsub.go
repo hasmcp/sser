@@ -71,10 +71,14 @@ func FromPublishResponseToHttpResponse(res entity.PublishResponse) []byte {
 
 func FromHttpRequestToSubscribeRequest(ctx *fasthttp.RequestCtx) *entity.SubscribeRequest {
 	id := fromHttpRequestToPubSubID(ctx)
+	token := fromHttpRequestToAccessToken(ctx)
+	if token == "" {
+		token = string(ctx.QueryArgs().Peek("access_token"))
+	}
 
 	return &entity.SubscribeRequest{
 		PubSubID: id,
-		Token:    []byte(fromHttpRequestToAccessToken(ctx)),
+		Token:    []byte(token),
 	}
 }
 

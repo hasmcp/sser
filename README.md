@@ -156,6 +156,14 @@ Establishes a long-lived connection to stream events published to a specified to
 | ----- | ------ | -------------------------------------------------- |
 | `:id` | string | The unique ID of the PubSub topic to subscribe to. |
 
+#### Pass topic access token as query string
+
+Passing topic's access token as query string would allow using browser's default EventSource class.
+
+```
+?access_token=$SSER_TOPIC_ACCESS_TOKEN
+```
+
 #### Example
 
 ```
