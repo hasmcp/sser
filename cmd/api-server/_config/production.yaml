@@ -11,7 +11,7 @@ server:
   closeOnShutdown: false
   disablePreParseMultipartForm: false
   ssl:
-    enabled: true
+    enabled: ${SSER_SSL_ENABLED:true}
     domainName: "${SSER_DOMAIN_NAME:example.com}"
     letsencryptEmail: "${SSER_LETSENCYRPT_EMAIL:example@example.com}"
     cacheDir: ./_config/certs

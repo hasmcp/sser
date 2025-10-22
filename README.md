@@ -22,10 +22,13 @@ go run main.go
 ```
 APP_ENV=production
 PORT=:80
-SSLPORT=:443
 SSER_API_ACCESS_TOKEN=
 SSER_METRICS_ACCESS_TOKEN=
 SSER_DOMAIN_NAME=yourdomain.com
+
+# SSL configs below
+SSLPORT=:443
+SSER_SSL_ENABLED=true
 SSER_LETSENCYRPT_EMAIL=your@email.com
 ```
 

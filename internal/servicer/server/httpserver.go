@@ -88,8 +88,12 @@ func New(p Params) (Servicer, error) {
 			Email:      cfg.SSL.LetsencryptEmail,
 		}
 
+		addr := cfg.Addr
+		if !strings.HasPrefix(addr, ":") {
+			addr = ":" + addr
+		}
 		srv = &http.Server{
-			Addr:    cfg.Addr,
+			Addr:    addr,
 			Handler: m.HTTPHandler(http.HandlerFunc(redirectHTTP)), // nil means default redirect to HTTPS
 		}
 
@@ -122,19 +126,21 @@ func New(p Params) (Servicer, error) {
 }
 
 func (s *servicer) ListenAndServe() error {
-	if !strings.Contains(s.cfg.Addr, ":") {
-		s.cfg.Addr = ":" + s.cfg.Addr
+	addr := s.cfg.Addr
+	if !strings.HasPrefix(addr, ":") {
+		addr = ":" + addr
 	}
 	if s.cfg.SSL.Enabled {
 		zlog.Info().Msg(logPrefix + "ssl enabled")
-		if !strings.Contains(s.cfg.SSLAddr, ":") {
-			s.cfg.SSLAddr = ":" + s.cfg.SSLAddr
+		sslAddr := s.cfg.SSLAddr
+		if !strings.HasPrefix(sslAddr, ":") {
+			sslAddr = ":" + sslAddr
 		}
 
 		go func() {
 			// Create a standard HTTP handler that serves the ACME challenge requests
 			// and redirects everything else to HTTPS.
-			zlog.Info().Str("domainName", s.cfg.SSL.DomainName).Str("addr", s.cfg.Addr).
+			zlog.Info().Str("domainName", s.cfg.SSL.DomainName).Str("addr", addr).
 				Msg(logPrefix + "starting ACME challenge HTTP listener")
 
 			if err := s.acmesrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -144,12 +150,12 @@ func (s *servicer) ListenAndServe() error {
 		}()
 
 		// Serve the fasthttp server using the TLS listener
-		if err := s.server.ListenAndServeTLS(s.cfg.SSLAddr, "", ""); err != nil {
+		if err := s.server.ListenAndServeTLS(sslAddr, "", ""); err != nil {
 			zlog.Error().Err(err).Msg(logPrefix + "fasthttp HTTPS listener failed")
 			return err
 		}
 	}
-	return s.server.ListenAndServe(s.cfg.Addr)
+	return s.server.ListenAndServe(addr)
 }
 
 func redirectHTTP(w http.ResponseWriter, r *http.Request) {
