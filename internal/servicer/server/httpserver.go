@@ -161,6 +161,8 @@ func redirectHTTP(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *servicer) Shutdown() error {
-	s.acmesrv.Shutdown(context.Background())
+	if s.acmesrv != nil {
+		s.acmesrv.Shutdown(context.Background())
+	}
 	return s.server.Shutdown()
 }
