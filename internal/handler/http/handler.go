@@ -56,7 +56,7 @@ func (h *handler) Handle(ctx *fasthttp.RequestCtx) {
 		fasthttp.ServeFile(ctx, "./public/index.html")
 		return
 	}
-	if path == "/assets/chart.js" || path == "/assets/main.css" {
+	if path == "/favicon.ico" || path == "/assets/chart.js" || path == "/assets/main.css" {
 		fasthttp.ServeFile(ctx, "./public"+path)
 		return
 	}
