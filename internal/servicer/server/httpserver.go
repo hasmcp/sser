@@ -67,8 +67,19 @@ func New(p Params) (Servicer, error) {
 	}
 
 	var srv *http.Server
-	var server *fasthttp.Server
-
+	server := &fasthttp.Server{
+		Handler:                      p.Handler,
+		Name:                         cfg.Name,
+		IdleTimeout:                  cfg.IdleTimeout,
+		ReadTimeout:                  cfg.ReadTimeout,
+		WriteTimeout:                 cfg.WriteTimeout,
+		MaxRequestBodySize:           cfg.MaxRequestBodySize,
+		TCPKeepalivePeriod:           cfg.TCPKeepalivePeriod,
+		TCPKeepalive:                 cfg.TCPKeepalive,
+		NoDefaultDate:                cfg.NoDefaultDate,
+		CloseOnShutdown:              cfg.CloseOnShutdown,
+		DisablePreParseMultipartForm: cfg.DisablePreParseMultipartForm,
+	}
 	if cfg.SSL.Enabled {
 		m := autocert.Manager{
 			Prompt:     autocert.AcceptTOS, // Automatically agree to the Let's Encrypt TOS
@@ -100,34 +111,7 @@ func New(p Params) (Servicer, error) {
 			},
 		}
 
-		server = &fasthttp.Server{
-			Handler:                      p.Handler,
-			Name:                         cfg.Name,
-			IdleTimeout:                  cfg.IdleTimeout,
-			ReadTimeout:                  cfg.ReadTimeout,
-			WriteTimeout:                 cfg.WriteTimeout,
-			MaxRequestBodySize:           cfg.MaxRequestBodySize,
-			TCPKeepalivePeriod:           cfg.TCPKeepalivePeriod,
-			TCPKeepalive:                 cfg.TCPKeepalive,
-			NoDefaultDate:                cfg.NoDefaultDate,
-			CloseOnShutdown:              cfg.CloseOnShutdown,
-			DisablePreParseMultipartForm: cfg.DisablePreParseMultipartForm,
-			TLSConfig:                    tlsConfig,
-		}
-	} else {
-		server = &fasthttp.Server{
-			Handler:                      p.Handler,
-			Name:                         cfg.Name,
-			IdleTimeout:                  cfg.IdleTimeout,
-			ReadTimeout:                  cfg.ReadTimeout,
-			WriteTimeout:                 cfg.WriteTimeout,
-			MaxRequestBodySize:           cfg.MaxRequestBodySize,
-			TCPKeepalivePeriod:           cfg.TCPKeepalivePeriod,
-			TCPKeepalive:                 cfg.TCPKeepalive,
-			NoDefaultDate:                cfg.NoDefaultDate,
-			CloseOnShutdown:              cfg.CloseOnShutdown,
-			DisablePreParseMultipartForm: cfg.DisablePreParseMultipartForm,
-		}
+		server.TLSConfig = tlsConfig
 	}
 
 	return &servicer{
@@ -142,6 +126,7 @@ func (s *servicer) ListenAndServe() error {
 		s.cfg.Addr = ":" + s.cfg.Addr
 	}
 	if s.cfg.SSL.Enabled {
+		zlog.Info().Msg(logPrefix + "ssl enabled")
 		if !strings.Contains(s.cfg.SSLAddr, ":") {
 			s.cfg.SSLAddr = ":" + s.cfg.SSLAddr
 		}

@@ -56,6 +56,10 @@ func (h *handler) Handle(ctx *fasthttp.RequestCtx) {
 		fasthttp.ServeFile(ctx, "./public/index.html")
 		return
 	}
+	if path == "/assets/chart.js" || path == "/assets/main.css" {
+		fasthttp.ServeFile(ctx, "./public"+path)
+		return
+	}
 	if strings.HasPrefix(path, pathPubSubs) {
 		h.handlePubSub(ctx)
 		return
