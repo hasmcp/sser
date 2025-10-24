@@ -9,7 +9,9 @@ import (
 	"sync"
 	"time"
 
+	"github.com/mustafaturan/monoflake"
 	"github.com/mustafaturan/sser/internal/_data/entity"
+	"github.com/mustafaturan/sser/internal/recorder/kv"
 	"github.com/mustafaturan/sser/internal/servicer/config"
 	"github.com/mustafaturan/sser/internal/servicer/idgen"
 	zlog "github.com/rs/zerolog/log"
@@ -28,6 +30,7 @@ type (
 	controller struct {
 		cfg     pubsubConfig
 		idgen   idgen.Servicer
+		kv      kv.Recorder
 		pubsubs sync.Map
 		metrics *metrics
 	}
@@ -35,6 +38,7 @@ type (
 	Params struct {
 		Config config.Servicer
 		IDGen  idgen.Servicer
+		KV     kv.Recorder
 	}
 
 	pubsub struct {
@@ -67,6 +71,8 @@ type (
 
 const (
 	cfgKey = "pubsub"
+
+	logPrefix = "[pubsubctrl] "
 )
 
 func New(p Params) (Controller, error) {
@@ -79,11 +85,17 @@ func New(p Params) (Controller, error) {
 	c := &controller{
 		cfg:     cfg,
 		idgen:   p.IDGen,
+		kv:      p.KV,
 		pubsubs: sync.Map{},
 		metrics: newMetrics(),
 	}
 
 	err = c.registerStaticPubSubs()
+	if err != nil {
+		return nil, err
+	}
+
+	err = c.registerPersistentPubSubs()
 	if err != nil {
 		return nil, err
 	}
@@ -109,7 +121,33 @@ func (c *controller) Create(ctx context.Context, req entity.CreatePubSubRequest)
 
 	token, err := generateRandom64()
 	if err != nil {
-		return nil, err
+		return nil, entity.Err{
+			Code:    500,
+			Message: "Couldn't generate random token",
+			Details: map[string]any{
+				"err": err.Error(),
+			},
+		}
+	}
+
+	if req.Persist {
+		if c.kv == nil {
+			return nil, entity.Err{
+				Code:    400,
+				Message: "Persistent store is not available",
+			}
+		}
+
+		err := c.kv.Set(ctx, monoflake.ID(id).BigEndianBytes(), []byte(token))
+		if err != nil {
+			return nil, entity.Err{
+				Code:    500,
+				Message: "Couldn't persist to store",
+				Details: map[string]any{
+					"err": err.Error(),
+				},
+			}
+		}
 	}
 
 	c.pubsubs.Store(id, &pubsub{
@@ -158,6 +196,19 @@ func (c *controller) Delete(ctx context.Context, req entity.DeletePubSubRequest)
 			Details: map[string]any{
 				"id": req.ID,
 			},
+		}
+	}
+
+	if c.kv != nil {
+		err := c.kv.Delete(context.Background(), monoflake.ID(req.ID).BigEndianBytes())
+		if err != nil {
+			return entity.Err{
+				Code:    500,
+				Message: "Couldn't delete the pubsub from storage",
+				Details: map[string]any{
+					"id": req.ID,
+				},
+			}
 		}
 	}
 
@@ -319,12 +370,44 @@ func (c *controller) GetMetrics(ctx context.Context, req entity.GetMetricsReques
 	}, nil
 }
 
+func (c *controller) registerPersistentPubSubs() error {
+	if c.kv == nil {
+		zlog.Warn().Msg(logPrefix + "persistant storage is not available, skipping loads")
+		return nil
+	}
+
+	keys, err := c.kv.ListKeys(context.Background())
+	if err != nil {
+		return err
+	}
+	ctx := context.Background()
+	cnt := int64(0)
+	for _, k := range keys {
+		id := monoflake.IDFromBigEndianBytes(k).Int64()
+		token, err := c.kv.Get(ctx, k)
+		if err != nil {
+			zlog.Error().Err(err).Int64("id", id).Msg(logPrefix + "failed to load pubsub from storage; going on with the next one.")
+			continue
+		}
+		c.pubsubs.Store(id, &pubsub{
+			id:          id,
+			subscribers: make([]subscriber, 0),
+			mutex:       sync.RWMutex{},
+			token:       token,
+		})
+		cnt++
+	}
+	c.incBy(metricTopics, cnt)
+	c.incBy(metricActiveTopics, cnt)
+	return nil
+}
+
 func (c *controller) registerStaticPubSubs() error {
 	// it is used for publishing system metrics (do not override!)
 	c.pubsubs.Store(int64(0), &pubsub{
 		id:          0, // reserved id
 		static:      true,
-		subscribers: make([]subscriber, 0, 1),
+		subscribers: make([]subscriber, 0),
 		mutex:       sync.RWMutex{},
 		token:       []byte(c.cfg.MetricsAccessToken),
 	})
@@ -341,7 +424,7 @@ func (c *controller) registerStaticPubSubs() error {
 		c.pubsubs.Store(ps.ID, &pubsub{
 			id:          ps.ID,
 			static:      true,
-			subscribers: make([]subscriber, 0, 1),
+			subscribers: make([]subscriber, 0),
 			mutex:       sync.RWMutex{},
 			token:       []byte(token),
 		})
@@ -390,7 +473,7 @@ func (c *controller) publish(id int64, msg []byte) (int, error) {
 				err := publishWithTimeout(ch, msg, timeoutDuration)
 				if err != nil {
 					zlog.Error().Err(err).Dur("timeout", timeoutDuration).
-						Msg("failed to send message to subscriber within the given timeout duration")
+						Msg(logPrefix + "failed to send message to subscriber within the given timeout duration")
 				}
 			}(s.channel)
 		}

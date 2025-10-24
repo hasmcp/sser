@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"os"
+	"strings" // Added for argument parsing
 
 	ssergocli "github.com/mustafaturan/sser/sdks/ssergo"
 )
@@ -35,7 +36,22 @@ func main() {
 
 	switch cmd {
 	case "create":
-		if err := client.CreatePubSub(); err != nil {
+		// --- Handle Persistence Option ---
+		var opts []ssergocli.CreateOption
+		persistEnabled := false
+
+		if len(args) > 0 && strings.ToLower(args[0]) == "--persist" {
+			opts = append(opts, ssergocli.WithPersist(true))
+			persistEnabled = true
+		}
+
+		if persistEnabled {
+			fmt.Println("Creating persistent PubSub topic...")
+		} else {
+			fmt.Println("Creating non-persistent PubSub topic...")
+		}
+
+		if err := client.CreatePubSub(opts...); err != nil {
 			fmt.Fprintf(os.Stderr, "Error creating pubsub: %v\n", err)
 			os.Exit(1)
 		}
@@ -109,7 +125,7 @@ func printUsage() {
 	fmt.Println("  SSER_API_ACCESS_TOKEN (required for client initialization)")
 	fmt.Println("  SSER_TOPIC_ACCESS_TOKEN (required for subscribe command)")
 	fmt.Println("Available commands:")
-	fmt.Println("  create                - Create a new PubSub topic.")
+	fmt.Println("  create [--persist]    - Create a new PubSub topic. Use '--persist' for storage.")
 	fmt.Println("  delete <id>           - Delete a PubSub topic by ID.")
 	fmt.Println("  publish <id> <message>- Publish a message to a PubSub topic ID.")
 	fmt.Println("  subscribe <id>        - Subscribe to events on a PubSub topic ID.")

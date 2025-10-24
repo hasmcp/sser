@@ -1,6 +1,6 @@
 app:
   name: "sser"
-  version: "0.1.0"
+  version: "0.2.0"
   waitTimeOnShutdownInSeconds: 5
 
 server:
@@ -32,3 +32,7 @@ pubsub:
   metricsAccessToken: "${SSER_METRICS_ACCESS_TOKEN:fzQm0hqz2y4hr75IzH5eurAag7JFt3vaMnw9C0QzGCS5tlictN4UyS9ysrxIpz}"
   maxDurationForSubscriberToReceive: 3s
   tickFrequency: 4s
+
+kv:
+  enabled: ${SSER_PERSISTENT_STORE_ENABLED:false}
+  dsn: ./_storage/sser.bbolt

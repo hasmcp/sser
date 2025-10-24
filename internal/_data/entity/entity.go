@@ -5,7 +5,7 @@ import "time"
 type (
 	CreatePubSubRequest struct {
 		ApiAccessToken string
-		TTL            time.Duration
+		Persist        bool
 	}
 
 	CreatePubSubResponse struct {

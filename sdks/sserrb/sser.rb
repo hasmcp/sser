@@ -71,12 +71,24 @@ class SSERClient
   # --- Public API Methods ---
 
   # Creates a new PubSub topic.
+  #
+  # @param persist [Boolean] If true, the topic will be persisted to storage. Defaults to false.
   # @return [String] The API response body (usually JSON with the new ID).
-  def create_pubsub
+  def create_pubsub(persist: false)
     uri = api_url('pubsubs')
     request = Net::HTTP::Post.new(uri)
     request['Content-Type'] = 'application/json'
-    request.body = '{}'
+
+    if persist
+      # Construct the persistence payload: {"pubsub": {"persist": true}}
+      payload = { pubsub: { persist: true } }
+      request.body = payload.to_json
+    else
+      # Default topic creation payload: {}
+      request.body = '{}'
+    end
+
+    logger.info "Creation payload: #{request.body}"
     execute_request(request)
   end
 

@@ -22,14 +22,25 @@ paths:
       security:
         - MainApiAuth: []
       requestBody:
-        description: Currently accepts an empty object for default topic creation.
+        description: Optional settings for topic creation, such as persistence.
         required: true
         content:
           application/json:
             schema:
               type: object
-              maxProperties: 0
-            example: {}
+              properties:
+                pubsub:
+                  type: object
+                  properties:
+                    persist:
+                      type: boolean
+                      description: If true, the topic will be persisted to storage.
+                      default: false
+                  minProperties: 1
+              maxProperties: 1
+            example:
+              pubsub:
+                persist: true
       responses:
         "200":
           description: Topic successfully created.
@@ -44,6 +55,7 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "500":
           $ref: "#/components/responses/ServerError"
+  # ... (rest of the /pubsubs/{id}, /pubsubs/{id}/events, and components sections remain unchanged)
   /pubsubs/{id}:
     parameters:
       - $ref: "#/components/parameters/TopicId"

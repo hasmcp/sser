@@ -2,9 +2,11 @@ package app
 
 import (
 	"context"
+	"errors"
 
 	"github.com/mustafaturan/sser/internal/controller/pubsub"
 	"github.com/mustafaturan/sser/internal/handler/http"
+	"github.com/mustafaturan/sser/internal/recorder/kv"
 	"github.com/mustafaturan/sser/internal/servicer/config"
 	"github.com/mustafaturan/sser/internal/servicer/idgen"
 	"github.com/mustafaturan/sser/internal/servicer/log"
@@ -16,6 +18,7 @@ type (
 		Config config.Servicer
 		Log    log.Servicer
 		Server server.Servicer
+		KV     kv.Recorder
 	}
 )
 
@@ -39,9 +42,17 @@ func New() (*App, error) {
 		return nil, err
 	}
 
+	kvrecorder, err := kv.New(kv.Params{
+		Config: config,
+	})
+	if err != nil && !errors.Is(err, kv.ErrNotEnabled) {
+		return nil, err
+	}
+
 	pubsub, err := pubsub.New(pubsub.Params{
 		Config: config,
 		IDGen:  idgen,
+		KV:     kvrecorder,
 	})
 	if err != nil {
 		return nil, err
@@ -66,6 +77,7 @@ func New() (*App, error) {
 		Config: config,
 		Log:    log,
 		Server: server,
+		KV:     kvrecorder,
 	}, nil
 }
 
@@ -81,6 +93,12 @@ func (a *App) Stop(ctx context.Context) error {
 	err := a.Server.Shutdown()
 	if err != nil {
 		return err
+	}
+
+	if a.KV != nil {
+		if err := a.KV.Close(); err != nil {
+			return err
+		}
 	}
 	return nil
 }

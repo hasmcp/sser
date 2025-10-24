@@ -11,6 +11,39 @@ class SSERError extends Error {
 }
 
 /**
+ * Manages configuration for the SSERClient.createPubSub method.
+ * This implements the Functional Options Pattern adapted for JavaScript classes.
+ */
+class CreatePubSubOptions {
+  /**
+   * @private
+   */
+  constructor() {
+    this.persist = false;
+  }
+
+  /**
+   * Factory method to create an options object for default creation.
+   * @returns {CreatePubSubOptions}
+   */
+  static defaults() {
+    return new CreatePubSubOptions();
+  }
+
+  /**
+   * Sets the persistence option for the new topic.
+   * @param {boolean} value - If true, the topic will be persisted to storage.
+   * @returns {CreatePubSubOptions}
+   */
+  static WithPersist(value) {
+    const opts = new CreatePubSubOptions();
+    opts.persist = !!value;
+    return opts;
+  }
+}
+
+
+/**
  * SSERClient provides methods to interact with the PubSub API.
  */
 class SSERClient {
@@ -96,15 +129,41 @@ class SSERClient {
   }
 
   /**
-   * Creates a new PubSub topic.
+   * Creates a new PubSub topic using optional configuration objects.
+   * * @param {...CreatePubSubOptions} opts - Optional configuration objects (e.g., CreatePubSubOptions.WithPersist(true)).
    * @returns {Promise<object|string>} The API response body (usually JSON with the new ID).
+   * * Example:
+   * client.createPubSub(CreatePubSubOptions.WithPersist(true));
    */
-  async createPubSub() {
-    this.logger.log("Attempting to create a new PubSub topic...");
+  async createPubSub(...opts) {
+    // Merge options into a single configuration object
+    const config = CreatePubSubOptions.defaults();
+
+    // In a full implementation, you'd iterate over opts and merge them.
+    // Since we only have one option (persist) right now, we'll just check the first one.
+    if (opts.length > 0 && opts[0].persist !== undefined) {
+      config.persist = opts[0].persist;
+    }
+
+    this.logger.log(`Attempting to create a new PubSub topic (Persist: ${config.persist})...`);
+
+    let requestBody = {};
+
+    if (config.persist) {
+      // Structure the body as required: {"pubsub": {"persist": true}}
+      requestBody = {
+        pubsub: {
+          persist: true
+        }
+      };
+    }
+
+    this.logger.log('Request body:', JSON.stringify(requestBody));
+
     return this._executeRequest('pubsubs', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({})
+      body: JSON.stringify(requestBody)
     });
   }
 

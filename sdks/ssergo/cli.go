@@ -4,10 +4,10 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"errors" // Added errors package
+	"errors"
 	"fmt"
 	"io"
-	"log" // Added log package
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -18,7 +18,8 @@ type EventCallback func(line string)
 
 // SSERClient defines the interface for interacting with the PubSub API.
 type SSERClient interface {
-	CreatePubSub() error
+	// Updated method signature to accept a variadic list of options.
+	CreatePubSub(opts ...CreateOption) error
 	DeletePubSub(id string) error
 	PublishEvent(id string, message string) error
 	SubscribeToTopic(id string, topicAccessToken string, callback EventCallback) error
@@ -32,8 +33,7 @@ type Params struct {
 	HTTPClient     *http.Client
 }
 
-// sserClient holds the base configuration for API interaction. It is private to enforce
-// that it must be accessed via the SSERClient interface.
+// sserClient holds the base configuration for API interaction.
 type sserClient struct {
 	baseURL    string
 	apiToken   string
@@ -42,7 +42,6 @@ type sserClient struct {
 }
 
 // New creates a new instance of SSERClient and returns it as the interface.
-// It initializes default dependencies (Logger, HTTPClient) if they are not provided in the Params.
 func New(p Params) (SSERClient, error) {
 	if p.BaseURL == "" {
 		return nil, errors.New("BaseURL cannot be empty")
@@ -51,14 +50,11 @@ func New(p Params) (SSERClient, error) {
 		return nil, errors.New("APIAccessToken cannot be empty")
 	}
 
-	// Default HTTP client with a timeout for standard operations
 	if p.HTTPClient == nil {
 		p.HTTPClient = &http.Client{Timeout: 10 * time.Second}
 	}
 
-	// Default Logger using the standard log library, writing to os.Stdout
 	if p.Logger == nil {
-		// Set default log output and prefix
 		p.Logger = log.New(os.Stdout, "PUBSUB_SDK: ", log.LstdFlags)
 	}
 
@@ -84,16 +80,82 @@ type EventPayload struct {
 	Message string `json:"message"`
 }
 
+// CreatePubSubPayload matches the expected body for the create endpoint (e.g., {"pubsub": {"persist": true}}).
+type CreatePubSubPayload struct {
+	PubSub PubSubSettings `json:"pubsub,omitempty"`
+}
+
+// PubSubSettings holds the optional settings for a new topic.
+type PubSubSettings struct {
+	Persist bool `json:"persist"`
+}
+
+// createConfig holds the configuration state for a CreatePubSub request.
+type createConfig struct {
+	Persist bool
+}
+
+// =============================================================================
+// FUNCTIONAL OPTIONS PATTERN
+// =============================================================================
+
+// CreateOption defines the signature for a functional option that configures a createConfig.
+type CreateOption func(*createConfig) error
+
+// WithPersist sets the persistence option for the new topic.
+// If true, the topic will be persisted to storage.
+func WithPersist(persist bool) CreateOption {
+	return func(cfg *createConfig) error {
+		cfg.Persist = persist
+		return nil
+	}
+}
+
 // =============================================================================
 // CORE API METHODS
 // =============================================================================
 
-// CreatePubSub sends a POST request to create a new PubSub topic.
-func (c *sserClient) CreatePubSub() error {
-	url := fmt.Sprintf("%s/api/v1/pubsubs", c.baseURL)
-	c.logger.Println("Attempting to create a new PubSub topic...")
+// CreatePubSub sends a POST request to create a new PubSub topic, configurable via options.
+//
+// Example usage:
+// client.CreatePubSub() // Default topic
+// client.CreatePubSub(WithPersist(true)) // Persistent topic
+func (c *sserClient) CreatePubSub(opts ...CreateOption) error {
+	// Initialize default configuration
+	cfg := &createConfig{
+		Persist: false,
+	}
 
-	req, err := http.NewRequest("POST", url, bytes.NewBuffer([]byte("{}")))
+	// Apply options to the configuration
+	for _, opt := range opts {
+		if err := opt(cfg); err != nil {
+			return fmt.Errorf("failed to apply create option: %w", err)
+		}
+	}
+
+	url := fmt.Sprintf("%s/api/v1/pubsubs", c.baseURL)
+	c.logger.Printf("Attempting to create a new PubSub topic (Persist: %t)...", cfg.Persist)
+
+	var body []byte
+	var err error
+
+	if cfg.Persist {
+		// Construct the persistence payload: {"pubsub": {"persist": true}}
+		payload := CreatePubSubPayload{
+			PubSub: PubSubSettings{Persist: true},
+		}
+		body, err = json.Marshal(payload)
+		if err != nil {
+			return fmt.Errorf("failed to marshal persistence payload: %w", err)
+		}
+	} else {
+		// Use empty JSON object for default creation: {}
+		body = []byte("{}")
+	}
+
+	c.logger.Printf("Creation payload: %s\n", string(body))
+
+	req, err := http.NewRequest("POST", url, bytes.NewBuffer(body))
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -108,7 +170,8 @@ func (c *sserClient) CreatePubSub() error {
 	defer resp.Body.Close()
 
 	c.logger.Printf("HTTP Status: %s\n", resp.Status)
-	io.Copy(os.Stdout, resp.Body)
+	responseBody, _ := io.ReadAll(resp.Body)
+	c.logger.Printf("Response Body: %s\n", string(responseBody))
 	c.logger.Println("\nCreation command finished. Check the response above for the new PubSub ID.")
 	return nil
 }
@@ -132,8 +195,9 @@ func (c *sserClient) DeletePubSub(id string) error {
 	defer resp.Body.Close()
 
 	c.logger.Printf("HTTP Status: %s\n", resp.Status)
-	// Output body (which might be empty or contain confirmation)
-	io.Copy(os.Stdout, resp.Body)
+	// Log the response body
+	responseBody, _ := io.ReadAll(resp.Body)
+	c.logger.Printf("Response Body: %s\n", string(responseBody))
 	c.logger.Println("\nDeletion command finished.")
 	return nil
 }
@@ -167,7 +231,8 @@ func (c *sserClient) PublishEvent(id string, message string) error {
 	defer resp.Body.Close()
 
 	c.logger.Printf("HTTP Status: %s\n", resp.Status)
-	io.Copy(os.Stdout, resp.Body)
+	responseBody, _ := io.ReadAll(resp.Body)
+	c.logger.Printf("Response Body: %s\n", string(responseBody))
 	c.logger.Println("\nPublish command finished.")
 	return nil
 }
@@ -179,8 +244,6 @@ func (c *sserClient) SubscribeToTopic(id string, topicAccessToken string, callba
 	c.logger.Printf("Subscribing to %s. Listening for Server-Sent Events (SSE). Press Ctrl+C to stop.\n", id)
 	c.logger.Println("--------------------------------------------------------")
 
-	// We temporarily use a client with no timeout for the long-lived SSE connection.
-	// We make a copy of the default client to modify the timeout.
 	streamingClient := *c.httpClient
 	streamingClient.Timeout = 0
 
@@ -189,7 +252,6 @@ func (c *sserClient) SubscribeToTopic(id string, topicAccessToken string, callba
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	// NOTE: This uses the specific SSER_TOPIC_ACCESS_TOKEN
 	req.Header.Set("Authorization", "Bearer "+topicAccessToken)
 
 	resp, err := streamingClient.Do(req)
@@ -204,10 +266,9 @@ func (c *sserClient) SubscribeToTopic(id string, topicAccessToken string, callba
 		return fmt.Errorf("server returned error: %s", string(body))
 	}
 
-	// Use a scanner to read the streaming response line by line (SSE format)
 	scanner := bufio.NewScanner(resp.Body)
 	for scanner.Scan() {
-		callback(scanner.Text()) // Call the provided callback function
+		callback(scanner.Text())
 	}
 
 	if err := scanner.Err(); err != nil && err != io.EOF {

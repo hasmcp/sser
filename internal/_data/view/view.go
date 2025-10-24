@@ -2,6 +2,7 @@ package view
 
 type (
 	CreatePubSubRequest struct {
+		Persist bool `yaml:"persist"`
 	}
 
 	CreatePubSubResponse struct {

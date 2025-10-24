@@ -33,6 +33,7 @@ COPY --from=build /app/sser /
 COPY --from=build /etc_passwd /etc/passwd
 COPY --from=build /app/cmd/api-server/public /public
 COPY --from=build /app/cmd/api-server/_config /_config
+COPY --from=build /app/cmd/api-server/_storage /_storage
 
 USER nobody
 

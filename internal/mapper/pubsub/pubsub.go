@@ -11,15 +11,20 @@ import (
 )
 
 const (
-	payloadPubSubNamespace             string = "pubsub"
-	payloadPubSubEventNamespace        string = "event"
-	payloadPubSubSubscriptionNamespace string = "subscription"
-	payloadMetricsNamespace            string = "metrics"
+	payloadPubSubNamespace      string = "pubsub"
+	payloadPubSubEventNamespace string = "event"
 )
 
 func FromHttpRequestToCreatePubSubRequest(ctx *fasthttp.RequestCtx) *entity.CreatePubSubRequest {
+	var req map[string]view.CreatePubSubRequest
+
+	err := json.Unmarshal(ctx.Request.Body(), &req)
+	if err != nil {
+		return nil
+	}
 	return &entity.CreatePubSubRequest{
 		ApiAccessToken: fromHttpRequestToAccessToken(ctx),
+		Persist:        req[payloadPubSubNamespace].Persist,
 	}
 }
 

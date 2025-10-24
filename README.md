@@ -30,12 +30,16 @@ SSER_DOMAIN_NAME=yourdomain.com
 SSLPORT=:443
 SSER_SSL_ENABLED=true
 SSER_LETSENCYRPT_EMAIL=your@email.com
+
+# Persistent storage
+SSER_PERSISTENT_STORE_ENABLED=true
 ```
 
 2. Download the configuration yamls into config folder and edit as needed:
 
 ```
 mkdir -p ./_config/certs
+mkdir ./_storage
 cd _config
 wget https://raw.githubusercontent.com/mustafaturan/sser/refs/heads/main/cmd/api-server/_config/base.yaml
 wget https://raw.githubusercontent.com/mustafaturan/sser/refs/heads/main/cmd/api-server/_config/production.yaml
@@ -47,7 +51,7 @@ wget https://raw.githubusercontent.com/mustafaturan/sser/refs/heads/main/cmd/api
 docker pull mustafaturan/sser
 
 # In the parent directory of the _config directory.
-docker run- -env-file .env -p 80:80 -p 443:443 --name sser -v ./_config:/_config mustafaturan/sser:latest
+docker run --env-file .env -p 80:80 -p 443:443 --name sser -v ./_config:/_config -v ./_storage/_storage mustafaturan/sser:latest
 ```
 
 ## Dashboard
@@ -81,8 +85,20 @@ Creates a new message queue or topic. The response will typically include the ne
 
 This endpoint currently accepts an empty JSON object to create a default topic.
 
+Create an inmemory topic:
+
 ```
-{}
+{
+  "pubsub": {"persist": false}
+}
+```
+
+Create a persistent topic:
+
+```
+{
+  "pubsub": {"persist": true}
+}
 ```
 
 #### Example

@@ -15,3 +15,7 @@ server:
     domainName: "${SSER_DOMAIN_NAME:example.com}"
     letsencryptEmail: "${SSER_LETSENCYRPT_EMAIL:example@example.com}"
     cacheDir: ./_config/certs
+
+kv:
+  enabled: ${SSER_PERSISTENT_STORE_ENABLED:false}
+  dsn: ./_storage/sser.bbolt

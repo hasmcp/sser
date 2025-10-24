@@ -59,13 +59,36 @@ initialize() {
 
 # Function to create a new PubSub topic
 create_pubsub() {
-    echo "Attempting to create a new PubSub topic..."
+    echo "Attempting to create a new PubSub topic."
+    local payload='{}'
+    local persist_input
+
+    # Prompt user for persistence
+    while true; do
+        read -r -p "Do you want this topic to be persisted to storage? (y/N): " persist_input
+        persist_input=$(echo "$persist_input" | tr '[:upper:]' '[:lower:]') # Convert to lowercase
+
+        if [[ "$persist_input" == "y" || "$persist_input" == "yes" ]]; then
+            # Set the payload for persistence: {"pubsub": {"persist": true}}
+            payload='{"pubsub": {"persist": true}}'
+            echo "Persistence enabled."
+            break
+        elif [[ "$persist_input" == "n" || "$persist_input" == "no" || -z "$persist_input" ]]; then
+            # Default payload: {}
+            echo "Persistence disabled (default)."
+            break
+        else
+            echo "Invalid input. Please enter 'y' or 'n'."
+        fi
+    done
+
+    echo "Payload: $payload"
 
     curl -s -w "\nHTTP Status: %{http_code}\n" \
         -H "Authorization: Bearer $SSER_API_ACCESS_TOKEN" \
         -H "Content-Type: application/json" \
         -X POST \
-        -d '{}' \
+        -d "$payload" \
         "$SSER_API_BASE_URL/api/v1/pubsubs"
 
     echo "--------------------------------------------------------"
@@ -170,7 +193,7 @@ subscribe_topic() {
     curl -i \
         -H "Authorization: Bearer $topic_token" \
         -X GET \
-        "$SSER_TOPIC_ACCESS_TOKEN/api/v1/pubsubs/$id/events"
+        "$SSER_API_BASE_URL/api/v1/pubsubs/$id/events"
 }
 
 # --- Help Menu ---
@@ -180,7 +203,7 @@ show_help() {
     echo "Available commands:"
     echo "  help                  - Show this help menu."
     echo "  init                  - Manually re-initialize API URL and token."
-    echo "  create                - Create a new PubSub topic."
+    echo "  create                - Create a new PubSub topic (prompts for persistence)."
     echo "  delete <id>           - Delete a PubSub topic by ID."
     echo "  publish <id> <message>- Publish a message to a PubSub topic ID."
     echo "  subscribe <id>        - Subscribe to events on a PubSub topic ID (requires SSER_TOPIC_ACCESS_TOKEN)."
