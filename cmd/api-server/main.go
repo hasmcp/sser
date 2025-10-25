@@ -54,12 +54,12 @@ func main() {
 			exitCh <- syscall.SIGTERM
 		}()
 
+		zlog.Info().Dur("latency", time.Since(startTime)).Msg(logPrefix + "app start latency")
 		err := app.Start(ctx)
 		if err != nil {
 			zlog.Fatal().Err(err).Msg(logPrefix + "could not start the app")
 			return
 		}
-		zlog.Info().Dur("latency", time.Since(startTime)).Msg(logPrefix + "app start latency")
 		select {}
 	}()
 
