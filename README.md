@@ -9,7 +9,7 @@ is enabled on production environment.
 ### Local
 
 ```
-git clone https://github.com/mustafaturan/sser
+git clone https://github.com/hasmcp/sser
 cd sser
 cd cmd/api-server
 go run main.go
@@ -41,8 +41,8 @@ SSER_PERSISTENT_STORE_ENABLED=true
 mkdir -p ./_config/certs
 mkdir ./_storage
 cd _config
-wget https://raw.githubusercontent.com/mustafaturan/sser/refs/heads/main/cmd/api-server/_config/base.yaml
-wget https://raw.githubusercontent.com/mustafaturan/sser/refs/heads/main/cmd/api-server/_config/production.yaml
+wget https://raw.githubusercontent.com/hasmcp/sser/refs/heads/main/cmd/api-server/_config/base.yaml
+wget https://raw.githubusercontent.com/hasmcp/sser/refs/heads/main/cmd/api-server/_config/production.yaml
 ```
 
 3. Run the app

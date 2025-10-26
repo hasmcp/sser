@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mustafaturan/sser/internal/_data/entity"
-	"github.com/mustafaturan/sser/internal/controller/pubsub"
-	errmapper "github.com/mustafaturan/sser/internal/mapper/err"
-	pubsubmapper "github.com/mustafaturan/sser/internal/mapper/pubsub"
+	"github.com/hasmcp/sser/internal/_data/entity"
+	"github.com/hasmcp/sser/internal/controller/pubsub"
+	errmapper "github.com/hasmcp/sser/internal/mapper/err"
+	pubsubmapper "github.com/hasmcp/sser/internal/mapper/pubsub"
 	zlog "github.com/rs/zerolog/log"
 	"github.com/valyala/fasthttp"
 )
@@ -27,10 +27,6 @@ type (
 	Params struct {
 		PubSub pubsub.Controller
 	}
-)
-
-const (
-	cfgKey = "http"
 )
 
 const (

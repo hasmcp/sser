@@ -5,7 +5,7 @@ import (
 	"os"
 	"strings" // Added for argument parsing
 
-	ssergocli "github.com/mustafaturan/sser/sdks/ssergo"
+	ssergocli "github.com/hasmcp/sser/sdks/ssergo"
 )
 
 func main() {

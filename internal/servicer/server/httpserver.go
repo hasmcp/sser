@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/mustafaturan/sser/internal/servicer/config"
+	"github.com/hasmcp/sser/internal/servicer/config"
 	zlog "github.com/rs/zerolog/log"
 	"github.com/valyala/fasthttp"
 	"golang.org/x/crypto/acme/autocert"

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"time"
 
-	"github.com/mustafaturan/sser/internal/servicer/config"
+	"github.com/hasmcp/sser/internal/servicer/config"
 	zlog "github.com/rs/zerolog/log"
 	"go.etcd.io/bbolt"
 )

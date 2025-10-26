@@ -5,8 +5,8 @@ import (
 	"regexp"
 	"time"
 
+	"github.com/hasmcp/sser/internal/servicer/config"
 	"github.com/mustafaturan/monoflake"
-	"github.com/mustafaturan/sser/internal/servicer/config"
 	zlog "github.com/rs/zerolog/log"
 )
 

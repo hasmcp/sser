@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	app "github.com/mustafaturan/sser/internal/_app"
+	app "github.com/hasmcp/sser/internal/_app"
 	zlog "github.com/rs/zerolog/log"
 )
 

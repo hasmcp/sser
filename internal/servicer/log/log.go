@@ -3,7 +3,7 @@ package log
 import (
 	"time"
 
-	"github.com/mustafaturan/sser/internal/servicer/config"
+	"github.com/hasmcp/sser/internal/servicer/config"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 )

@@ -4,13 +4,13 @@ import (
 	"context"
 	"errors"
 
-	"github.com/mustafaturan/sser/internal/controller/pubsub"
-	"github.com/mustafaturan/sser/internal/handler/http"
-	"github.com/mustafaturan/sser/internal/recorder/kv"
-	"github.com/mustafaturan/sser/internal/servicer/config"
-	"github.com/mustafaturan/sser/internal/servicer/idgen"
-	"github.com/mustafaturan/sser/internal/servicer/log"
-	"github.com/mustafaturan/sser/internal/servicer/server"
+	"github.com/hasmcp/sser/internal/controller/pubsub"
+	"github.com/hasmcp/sser/internal/handler/http"
+	"github.com/hasmcp/sser/internal/recorder/kv"
+	"github.com/hasmcp/sser/internal/servicer/config"
+	"github.com/hasmcp/sser/internal/servicer/idgen"
+	"github.com/hasmcp/sser/internal/servicer/log"
+	"github.com/hasmcp/sser/internal/servicer/server"
 )
 
 type (

@@ -1,4 +1,4 @@
-module github.com/mustafaturan/sser
+module github.com/hasmcp/sser
 
 go 1.25.1
 

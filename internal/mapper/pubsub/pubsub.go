@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"strings"
 
+	"github.com/hasmcp/sser/internal/_data/entity"
+	"github.com/hasmcp/sser/internal/_data/view"
 	"github.com/mustafaturan/monoflake"
-	"github.com/mustafaturan/sser/internal/_data/entity"
-	"github.com/mustafaturan/sser/internal/_data/view"
 	"github.com/valyala/fasthttp"
 )
 

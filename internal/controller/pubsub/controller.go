@@ -9,11 +9,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/hasmcp/sser/internal/_data/entity"
+	"github.com/hasmcp/sser/internal/recorder/kv"
+	"github.com/hasmcp/sser/internal/servicer/config"
+	"github.com/hasmcp/sser/internal/servicer/idgen"
 	"github.com/mustafaturan/monoflake"
-	"github.com/mustafaturan/sser/internal/_data/entity"
-	"github.com/mustafaturan/sser/internal/recorder/kv"
-	"github.com/mustafaturan/sser/internal/servicer/config"
-	"github.com/mustafaturan/sser/internal/servicer/idgen"
 	zlog "github.com/rs/zerolog/log"
 )
 

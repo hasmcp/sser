@@ -3,8 +3,8 @@ package err
 import (
 	"encoding/json"
 
-	"github.com/mustafaturan/sser/internal/_data/entity"
-	"github.com/mustafaturan/sser/internal/_data/view"
+	"github.com/hasmcp/sser/internal/_data/entity"
+	"github.com/hasmcp/sser/internal/_data/view"
 )
 
 func FromErrorEntityToErrorView(e entity.Err) view.Err {
