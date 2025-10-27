@@ -10,6 +10,10 @@ class SSERError extends Error {
   }
 }
 
+// -----------------------------------------------------------------------------
+// CREATE OPTIONS (Unchanged)
+// -----------------------------------------------------------------------------
+
 /**
  * Manages configuration for the SSERClient.createPubSub method.
  * This implements the Functional Options Pattern adapted for JavaScript classes.
@@ -42,6 +46,9 @@ class CreatePubSubOptions {
   }
 }
 
+// -----------------------------------------------------------------------------
+// SSERClient (Core Logic)
+// -----------------------------------------------------------------------------
 
 /**
  * SSERClient provides methods to interact with the PubSub API.
@@ -182,13 +189,29 @@ class SSERClient {
   /**
    * Publishes an event (message) to a specified PubSub topic.
    * @param {string} id - The unique ID of the topic.
-   * @param {*} message - The content to publish (will be wrapped in {"event": {"message": ...}}).
+   * @param {*} message - The content to publish.
+   * @param {string} [eventID] - Optional. The ID to attach to the event (as 'id' in the payload).
+   * @param {string} [eventType] - Optional. The type to attach to the event (as 'type' in the payload).
    * @returns {Promise<object|string>} The API response body.
    */
-  async publishEvent(id, message) {
+  async publishEvent(id, message, eventID, eventType) {
     this.logger.log(`Attempting to publish event to ID: ${id}`);
+
+    // Construct the event object starting with the required message
+    const eventPayload = { message };
+
+    // Conditionally add optional fields
+    // Since eventID and eventType are the last arguments, they will be undefined if omitted.
+    if (eventID) {
+      eventPayload.id = eventID;
+    }
+    if (eventType) {
+      eventPayload.type = eventType;
+    }
+
+    // Wrap the event payload into the final request body
     const payload = {
-      event: { message: message }
+      event: eventPayload
     };
 
     return this._executeRequest(`pubsubs/${id}/events`, {

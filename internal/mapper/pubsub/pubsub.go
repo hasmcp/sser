@@ -7,6 +7,7 @@ import (
 	"github.com/hasmcp/sser/internal/_data/entity"
 	"github.com/hasmcp/sser/internal/_data/view"
 	"github.com/mustafaturan/monoflake"
+	zlog "github.com/rs/zerolog/log"
 	"github.com/valyala/fasthttp"
 )
 
@@ -53,13 +54,18 @@ func FromHttpRequestToPublishRequest(ctx *fasthttp.RequestCtx) *entity.PublishRe
 
 	err := json.Unmarshal(ctx.Request.Body(), &req)
 	if err != nil {
+		zlog.Error().Err(err).Str("body", string(ctx.Request.Body())).Msg("failed to parse request for publish event")
 		return nil
 	}
+
+	params := req[payloadPubSubEventNamespace]
 
 	return &entity.PublishRequest{
 		ApiAccessToken: fromHttpRequestToAccessToken(ctx),
 		PubSubID:       id,
-		Message:        []byte(req[payloadPubSubEventNamespace].Message),
+		EventID:        params.ID,
+		EventType:      params.Type,
+		Message:        []byte(params.Message),
 	}
 }
 

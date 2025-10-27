@@ -21,6 +21,8 @@ type (
 	PublishRequest struct {
 		ApiAccessToken string
 		PubSubID       int64
+		EventID        string
+		EventType      string
 		Message        []byte
 	}
 
@@ -35,7 +37,7 @@ type (
 
 	SubscribeResponse struct {
 		ID            int64
-		Events        chan []byte
+		Events        chan *Event
 		TickFrequency time.Duration
 	}
 
@@ -56,5 +58,11 @@ type (
 	Metric struct {
 		Name  string
 		Value float64
+	}
+
+	Event struct {
+		ID   string
+		Type string
+		Data []byte
 	}
 )

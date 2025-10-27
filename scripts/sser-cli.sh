@@ -121,10 +121,13 @@ delete_pubsub() {
 
 # Function to publish an event to a PubSub topic
 publish_event() {
-    if [ -z "$1" ]; then
+    local id="$1"
+    local message_content="$2"
+    local event_id="$3"
+    local event_type="$4"
+
+    if [ -z "$id" ]; then
         read -r -p "Enter the PubSub ID to publish to: " id
-    else
-        id="$1"
     fi
 
     if [ -z "$id" ]; then
@@ -132,11 +135,8 @@ publish_event() {
         return 1
     fi
 
-    if [ -z "$2" ]; then
-        read -r -p "Enter the message content (e.g., 'Hello World'): " message_content
-    else
-        # Allow passing multiple arguments as a message
-        message_content="$2"
+    if [ -z "$message_content" ]; then
+        read -r -p "Enter the raw message content (e.g., Hello World or {'key':'value'}): " message_content
     fi
 
     if [ -z "$message_content" ]; then
@@ -144,8 +144,42 @@ publish_event() {
         return 1
     fi
 
-    # Wrap the user-provided content into the JSON payload
-    payload="{\"event\": {\"message\": \"$message_content\"}}"
+    # --- Start of Payload Construction ---
+
+    # Start with the optional fields, which must be correctly formatted strings
+    local optional_fields=""
+
+    # Add optional 'id' field if event_id is provided
+    if [ -n "$event_id" ]; then
+        optional_fields="\"id\": \"$event_id\""
+        echo "Attaching Event ID: $event_id (as 'id')"
+    fi
+
+    # Add optional 'type' field if event_type is provided
+    if [ -n "$event_type" ]; then
+        if [ -n "$optional_fields" ]; then
+            optional_fields="$optional_fields, " # Add comma separator
+        fi
+        optional_fields="$optional_fields\"type\": \"$event_type\""
+        echo "Attaching Event Type: $event_type (as 'type')"
+    fi
+
+    # MESSAGE FIX: Surround message content with escaped double quotes.
+    # We must escape the double quotes here because the whole payload is already inside double quotes
+    # when assigned to the 'payload' variable later.
+    local quoted_message="\"$message_content\""
+
+    # Message field construction
+    if [ -n "$optional_fields" ]; then
+        local event_fields="$optional_fields, \"message\": $quoted_message"
+    else
+        local event_fields="\"message\": $quoted_message"
+    fi
+
+    # Wrap the event fields into the final JSON payload
+    local payload="{\"event\": {$event_fields}}"
+
+    # --- End of Payload Construction ---
 
     echo "Attempting to publish message to ID: $id"
     echo "Payload: $payload"
@@ -205,7 +239,9 @@ show_help() {
     echo "  init                  - Manually re-initialize API URL and token."
     echo "  create                - Create a new PubSub topic (prompts for persistence)."
     echo "  delete <id>           - Delete a PubSub topic by ID."
-    echo "  publish <id> <message>- Publish a message to a PubSub topic ID."
+    echo "  publish <id> <message> [eventID] [eventType] - Publish a message to a PubSub topic ID."
+    echo "                          <message> must be enclosed in double quotes (e.g., \"{\\\"key\\\": \\\"value\\\"}\")."
+    echo "                          eventID (as 'id') and eventType (as 'type') are optional."
     echo "  subscribe <id>        - Subscribe to events on a PubSub topic ID (requires SSER_TOPIC_ACCESS_TOKEN)."
     echo "--------------------------------------------------------"
 }
@@ -233,7 +269,8 @@ case "$1" in
         delete_pubsub "$2"
         ;;
     "publish")
-        publish_event "$2" "$3"
+        # Pass $2 (id), $3 (message), $4 (eventID), and $5 (eventType)
+        publish_event "$2" "$3" "$4" "$5"
         ;;
     "subscribe")
         subscribe_topic "$2"

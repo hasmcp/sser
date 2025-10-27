@@ -18,10 +18,11 @@ type EventCallback func(line string)
 
 // SSERClient defines the interface for interacting with the PubSub API.
 type SSERClient interface {
-	// Updated method signature to accept a variadic list of options.
+	// Updated method signature to accept optional eventID and eventType.
 	CreatePubSub(opts ...CreateOption) error
 	DeletePubSub(id string) error
-	PublishEvent(id string, message string) error
+	// PublishEvent now accepts optional eventID and eventType strings.
+	PublishEvent(id string, message string, eventID string, eventType string) error
 	SubscribeToTopic(id string, topicAccessToken string, callback EventCallback) error
 }
 
@@ -75,8 +76,11 @@ type PublishPayload struct {
 	Event EventPayload `json:"event"`
 }
 
-// EventPayload holds the message content.
+// EventPayload holds the message content along with optional id and type.
 type EventPayload struct {
+	// id and type are optional and will be omitted if empty/zero value.
+	ID      string `json:"id,omitempty"`
+	Type    string `json:"type,omitempty"`
 	Message string `json:"message"`
 }
 
@@ -202,13 +206,17 @@ func (c *sserClient) DeletePubSub(id string) error {
 	return nil
 }
 
-// PublishEvent sends a POST request to publish a message to a topic.
-func (c *sserClient) PublishEvent(id string, message string) error {
+// PublishEvent sends a POST request to publish a message to a topic, including optional event ID and type.
+func (c *sserClient) PublishEvent(id string, message string, eventID string, eventType string) error {
 	url := fmt.Sprintf("%s/api/v1/pubsubs/%s/events", c.baseURL, id)
 	c.logger.Printf("Attempting to publish message to ID: %s\n", id)
 
 	payload := PublishPayload{
-		Event: EventPayload{Message: message},
+		Event: EventPayload{
+			ID:      eventID,
+			Type:    eventType,
+			Message: message,
+		},
 	}
 	body, err := json.Marshal(payload)
 	if err != nil {

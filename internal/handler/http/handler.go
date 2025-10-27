@@ -33,6 +33,10 @@ const (
 	pathBase    string = "/api/v1"
 	pathMetrics string = pathBase + "/metrics"
 	pathPubSubs string = pathBase + "/pubsubs"
+
+	keyEventIDSize   = len("id: \n")
+	keyEventTypeSize = len("event: \n")
+	keyEventDataSize = len("data: \n\n")
 )
 
 var (
@@ -278,7 +282,8 @@ func (h *handler) subscribeToPubSub(ctx *fasthttp.RequestCtx) {
 				}
 				return
 			case <-ticker.C:
-				fmt.Fprintf(w, "data: {\"status\": \"tick\"}\n\n")
+				// commenting for keep alive
+				fmt.Fprintf(w, ": {\"status\": \"tick\"}\n\n")
 				if err := w.Flush(); err != nil {
 					zlog.Warn().Err(err).Int64("pubsubID", req.PubSubID).Msg("failed to flush on tick")
 					err := h.pubsub.Unsubscribe(freshCtx, entity.UnsubscribeRequest{
@@ -294,7 +299,7 @@ func (h *handler) subscribeToPubSub(ctx *fasthttp.RequestCtx) {
 			case event, ok := <-res.Events:
 				if !ok {
 					zlog.Info().Int64("id", res.ID).Msg("sse conn closed")
-
+					// letting the client know about server closed the conn
 					fmt.Fprintf(w, "data: {\"status\": \"closed\"}\n\n")
 					if err := w.Flush(); err != nil {
 						zlog.Warn().Err(err).Int64("pubsubID", req.PubSubID).Msg("failed to flush on closed event")
@@ -302,7 +307,15 @@ func (h *handler) subscribeToPubSub(ctx *fasthttp.RequestCtx) {
 					}
 					return
 				}
-				fmt.Fprintf(w, "data: %s\n\n", string(event))
+
+				// check id not null and has value
+				if len(event.ID) > 0 {
+					fmt.Fprintf(w, "id: %s\n", event.ID)
+				}
+				if len(event.Type) > 0 {
+					fmt.Fprintf(w, "event: %s\n", event.Type)
+				}
+				fmt.Fprintf(w, "data: %s\n\n", string(event.Data))
 				if err := w.Flush(); err != nil {
 					zlog.Error().Err(err).Int64("pubsubID", req.PubSubID).Msg("failed to flush on event")
 					err := h.pubsub.Unsubscribe(freshCtx, entity.UnsubscribeRequest{

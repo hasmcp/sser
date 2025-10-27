@@ -50,7 +50,7 @@ type (
 	}
 
 	subscriber struct {
-		channel chan []byte
+		channel chan *entity.Event
 		id      int64
 	}
 
@@ -234,7 +234,7 @@ func (c *controller) Publish(ctx context.Context, req entity.PublishRequest) (*e
 		}
 	}
 
-	cnt, err := c.publish(req.PubSubID, req.Message)
+	cnt, err := c.publish(req.PubSubID, req.EventID, req.EventType, req.Message)
 	if err != nil {
 		return nil, err
 	}
@@ -282,7 +282,7 @@ func (c *controller) Subscribe(ctx context.Context, req entity.SubscribeRequest)
 	id := c.idgen.Next()
 
 	subscriber := subscriber{
-		channel: make(chan []byte),
+		channel: make(chan *entity.Event),
 		id:      id,
 	}
 
@@ -436,7 +436,7 @@ func (c *controller) registerStaticPubSubs() error {
 	return nil
 }
 
-func (c *controller) publish(id int64, msg []byte) (int, error) {
+func (c *controller) publish(id int64, eventID, eventType string, msg []byte) (int, error) {
 	t, ok := c.pubsubs.Load(id)
 	if !ok {
 		return 0, entity.Err{
@@ -463,12 +463,12 @@ func (c *controller) publish(id int64, msg []byte) (int, error) {
 	subscribers := pubsub.subscribers
 	pubsub.mutex.RUnlock()
 
-	go func(msg []byte, subscribers []subscriber) {
+	go func(msg *entity.Event, subscribers []subscriber) {
 		timeoutDuration := c.cfg.MaxDurationForSubscriberToReceive
 		wg := sync.WaitGroup{}
 		for _, s := range subscribers {
 			wg.Add(1)
-			go func(ch chan []byte) {
+			go func(ch chan *entity.Event) {
 				defer wg.Done()
 				err := publishWithTimeout(ch, msg, timeoutDuration)
 				if err != nil {
@@ -478,26 +478,30 @@ func (c *controller) publish(id int64, msg []byte) (int, error) {
 			}(s.channel)
 		}
 		wg.Wait()
-	}(msg, subscribers)
+	}(&entity.Event{
+		ID:   eventID,
+		Type: eventType,
+		Data: msg,
+	}, subscribers)
 
 	return len(subscribers), nil
 }
 
 func (c *controller) inc(k metric) {
 	msg := fmt.Sprintf(`{"val": 1, "metric": "%s"}`, k.String())
-	_, _ = c.publish(0, []byte(msg))
+	_, _ = c.publish(0, "", "", []byte(msg))
 	c.metrics.inc(k)
 }
 
 func (c *controller) incBy(k metric, val int64) {
 	msg := fmt.Sprintf(`{"val": %d, "metric": "%s"}`, val, k.String())
-	_, _ = c.publish(0, []byte(msg))
+	_, _ = c.publish(0, "", "", []byte(msg))
 	c.metrics.incBy(k, val)
 }
 
 func (c *controller) dec(k metric) {
 	msg := fmt.Sprintf(`{"val": -1, "metric": "%s"}`, k.String())
-	_, _ = c.publish(0, []byte(msg))
+	_, _ = c.publish(0, "", "", []byte(msg))
 	c.metrics.dec(k)
 }
 
@@ -517,9 +521,9 @@ func generateRandom64() (string, error) {
 	return num.Text(62)[:64], nil
 }
 
-func publishWithTimeout(ch chan []byte, msg []byte, timeout time.Duration) error {
+func publishWithTimeout(ch chan *entity.Event, e *entity.Event, timeout time.Duration) error {
 	select {
-	case ch <- msg:
+	case ch <- e:
 		return nil
 	case <-time.After(timeout):
 		return fmt.Errorf("send to channel timed out after %v", timeout)

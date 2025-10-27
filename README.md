@@ -148,12 +148,33 @@ Publishes an event (message) to a specified PubSub topic.
 
 #### Request Body
 
-The payload requires an `event` object containing a `message` field. The message value can be any JSON-serializable type (string, number, object, etc.).
+The payload requires an event object. This object must contain a `message` field, which can be any JSON-serializable type (string, number, object, etc.).
+
+The event object also accepts two optional fields:
+
+`id` (string): A unique identifier for the event. If provided, this is sent to the client as the SSE id field.
+
+`type` (string): A type identifier for the event. If provided, this is sent to the client as the SSE event field.
 
 #### Example
 
+This example shows the request body including all optional parameters:
+
 ```
-curl -H 'Authorization: Bearer $SSER_API_ACCESS_TOKEN' -H 'Content-Type: application/json' -X POST -d '{"event": {"message": "Hello World"}}' '$BASE_URL/api/v1/pubsubs/00Q72zvO87K/events'
+curl -H 'Authorization: Bearer $SSER_API_ACCESS_TOKEN' \
+     -H 'Content-Type: application/json' \
+     -X POST \
+     -d '{
+           "event": {
+             "id": "order-update-456",
+             "type": "ORDER_SHIPPED",
+             "message": {
+               "order_id": 9001,
+               "status": "shipped"
+             }
+           }
+         }' \
+     '$BASE_URL/api/v1/pubsubs/00Q72zvO87K/events'
 ```
 
 ### 4. Subscribe to Topic Events (Server-Sent Events)

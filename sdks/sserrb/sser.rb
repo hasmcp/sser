@@ -101,17 +101,27 @@ class SSERClient
     execute_request(request)
   end
 
-  # Publishes an event (message) to a specified PubSub topic.
+  # Publishes an event (message) to a specified PubSub topic, with optional ID and type.
+  #
   # @param id [String] The unique ID of the topic.
   # @param message [String, Hash, Array] The content to publish.
+  # @param event_id [String, nil] Optional. The ID to attach to the event (mapped to 'id' in payload).
+  # @param event_type [String, nil] Optional. The type to attach to the event (mapped to 'type' in payload).
   # @return [String] The API response body.
-  def publish_event(id, message)
+  def publish_event(id, message, event_id: nil, event_type: nil)
     uri = api_url("pubsubs/#{id}/events")
     request = Net::HTTP::Post.new(uri)
     request['Content-Type'] = 'application/json'
 
+    # Build the core event payload
+    event_payload = { message: message }
+
+    # Conditionally add optional fields
+    event_payload[:id] = event_id if event_id
+    event_payload[:type] = event_type if event_type
+
     # Construct the required JSON payload structure
-    payload = { event: { message: message } }
+    payload = { event: event_payload }
     request.body = payload.to_json
 
     logger.info "Publishing payload: #{request.body}"

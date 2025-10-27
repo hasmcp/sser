@@ -55,7 +55,6 @@ paths:
           $ref: "#/components/responses/UnauthorizedError"
         "500":
           $ref: "#/components/responses/ServerError"
-  # ... (rest of the /pubsubs/{id}, /pubsubs/{id}/events, and components sections remain unchanged)
   /pubsubs/{id}:
     parameters:
       - $ref: "#/components/parameters/TopicId"
@@ -82,11 +81,11 @@ paths:
       tags:
         - Events
       summary: Publish Event to Topic
-      description: Publishes a message to the specified PubSub topic.
+      description: Publishes a message to the specified PubSub topic, with optional event ID and type.
       security:
         - MainApiAuth: []
       requestBody:
-        description: Payload containing the event message.
+        description: Payload containing the event message and optional metadata (id, type).
         required: true
         content:
           application/json:
@@ -94,7 +93,11 @@ paths:
               $ref: "#/components/schemas/PublishRequest"
             example:
               event:
-                message: Hello World!
+                id: unique-event-123 # Optional field
+                type: USER_ACTIVITY # Optional field
+                message:
+                  user_id: 456
+                  action: logged_in
       responses:
         "202":
           description: Event accepted for processing.
@@ -128,11 +131,13 @@ paths:
                 type: string
                 description: A stream of Server-Sent Events (SSE) where each event contains message data.
               example: |
-                event: message
-                data: {"id": "123", "content": "Welcome"}
+                id: unique-event-123
+                event: USER_ACTIVITY
+                data: {"user_id": 456, "action": "logged_in"}
 
-                event: message
-                data: {"id": "124", "content": "New update"}
+                id: unique-event-124
+                event: USER_ACTIVITY
+                data: {"user_id": 457, "action": "logged_out"}
         "401":
           $ref: "#/components/responses/UnauthorizedError"
         "404":
@@ -162,11 +167,28 @@ components:
           required:
             - message
           properties:
+            id: # New field for optional event ID
+              type: string
+              description: Optional unique ID for the event, passed to the client's SSE 'id' field.
+              example: unique-event-123
+            type: # New field for optional event Type
+              type: string
+              description: Optional event type, passed to the client's SSE 'event' field.
+              example: USER_ACTIVITY
             message:
+              # Updated to reflect the message can be any JSON type (object, string, array, etc.)
+              # The usage of 'type: object' previously was too restrictive.
+              # In OpenAPI 3.1, using `type: {}` or omitting `type` altogether can represent "any type,"
+              # but since you had 'type: object' and the message can be any JSON-serializable type,
+              # we'll define it as a simple object schema with no required properties for flexibility,
+              # while noting that it can be a primitive type.
+              # Alternatively, using `nullable: true` and `type: object` is common for "any JSON."
+              # Given the existing structure, we'll keep it as a flexible object for the best hint.
               type: object
-              description: The actual message content. Can be any JSON-serializable type.
+              description: The actual message content. Can be any JSON-serializable type (e.g., object, string, number).
               example:
-                text: This is a JSON message
+                user_id: 456
+                action: logged_in
     Error:
       type: object
       required:

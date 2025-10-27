@@ -76,7 +76,7 @@ func main() {
 		}
 		id := args[0]
 		message := args[1]
-		if err := client.PublishEvent(id, message); err != nil {
+		if err := client.PublishEvent(id, message, "", ""); err != nil {
 			fmt.Fprintf(os.Stderr, "Error publishing event: %v\n", err)
 			os.Exit(1)
 		}
@@ -127,7 +127,7 @@ func printUsage() {
 	fmt.Println("Available commands:")
 	fmt.Println("  create [--persist]    - Create a new PubSub topic. Use '--persist' for storage.")
 	fmt.Println("  delete <id>           - Delete a PubSub topic by ID.")
-	fmt.Println("  publish <id> <message>- Publish a message to a PubSub topic ID.")
+	fmt.Println("  publish <id> <message> <*event_id> <*event_type>- Publish a message to a PubSub topic ID. '*' optional")
 	fmt.Println("  subscribe <id>        - Subscribe to events on a PubSub topic ID.")
 	fmt.Println("  help                  - Show this help menu.")
 	fmt.Println("--------------------------------------------------------")
