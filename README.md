@@ -48,10 +48,10 @@ wget https://raw.githubusercontent.com/hasmcp/sser/refs/heads/main/cmd/api-serve
 3. Run the app
 
 ```
-docker pull mustafaturan/sser
+docker pull hasmcp/sser
 
 # In the parent directory of the _config directory.
-docker run --env-file .env -p 80:80 -p 443:443 --name sser -v ./_config:/_config -v ./_storage:/_storage mustafaturan/sser:latest
+docker run --env-file .env -p 80:80 -p 443:443 --name sser -v ./_config:/_config -v ./_storage:/_storage hasmcp/sser:latest
 ```
 
 ## Dashboard
